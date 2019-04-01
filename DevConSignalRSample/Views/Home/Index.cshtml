@@ -1,0 +1,71 @@
+﻿@model IEnumerable<DevConSignalRModels.DTO.CandidateVote>
+
+@{ 
+//reference: https://docs.microsoft.com/en-us/aspnet/core/tutorials/signalr?view=aspnetcore-2.2&tabs=visual-studio
+}
+
+<div class="row">
+    <div class="col-lg-12">
+        <div class="row">
+            @foreach (var candidatevote in Model)
+            {
+                <img src="@candidatevote.ProfilePhoto" class="img-thumbnail" width="150" height="150"/>
+                <p>@candidatevote.Name</p>
+                <p>@candidatevote.Bio</p>
+                <p>@candidatevote.Anime</p>
+                <span id="candidate-vote-@candidatevote.Id">@candidatevote.Votes</span>
+                <br/>
+                <button onclick="vote()" data-id="@candidatevote.Id" id="btnVote">Vote</button>
+            }
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+       var connection = new signalR.HubConnectionBuilder()
+            .withUrl('/voteHub')
+            .configureLogging(signalR.LogLevel.Information)
+            .build();
+
+        connection.start()
+            .then(() => {
+                console.log('Connected');
+            })
+            .catch((e) => {
+                console.log(e.toString());
+            });
+
+        function vote() {
+
+            var element;
+
+            try {
+                element = event.srcElement;
+            }
+            catch {
+                element = document.querySelector('#btnVote');
+            }
+
+            if (element == undefined) {
+                element = document.querySelector('#btnVote');
+            }
+
+            const candidateId = element.dataset.id;
+            console.log(candidateId);
+            connection.invoke('Vote', candidateId, 'I voted')
+                .catch((e) => {
+                    console.log(e.toString());
+                });
+        }
+
+        connection.on('NewVote', function (candidateId) {
+            const candidateVote = document.getElementById(`candidate-vote-${ candidateId }`);
+            candidateVote.innerHTML = parseInt(candidateVote.innerHTML) + 1;
+        });
+
+        connection.on('NotifyVoters', function (message) {
+            alert(message);
+        })
+    </script>
+}
